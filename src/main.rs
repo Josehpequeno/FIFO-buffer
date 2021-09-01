@@ -223,7 +223,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            6,
+            7,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
@@ -231,7 +231,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            7,
+            8,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
@@ -239,7 +239,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            9,
+            10,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
@@ -247,7 +247,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            10,
+            11,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
@@ -255,7 +255,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            12,
+            13,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
@@ -263,7 +263,7 @@ fn main() {
         );
         rustbox.print(
             1,
-            13,
+            14,
             rustbox::RB_BOLD,
             Color::White,
             Color::Default,
