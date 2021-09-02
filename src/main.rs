@@ -9,15 +9,61 @@
 use nanoid::nanoid;
 use std::collections::LinkedList;
 
+extern crate getopts;
 extern crate rustbox;
+extern crate unicode_segmentation;
 
+use getopts::Options;
+use std::env;
+
+use std::cmp::min;
 use std::default::Default;
+use std::fs;
+use std::fs::File;
+use std::io;
+use std::io::{Read, Write};
+use std::path::Path;
+use std::process::exit;
+
 use std::error::Error;
 
-use rustbox::Key;
-use rustbox::{Color, RustBox};
+use rustbox::{Color, Key, RustBox};
 
 extern crate term_size;
+
+use crossterm::{
+    cursor::MoveTo,
+    event::{DisableMouseCapture, EnableMouseCapture},
+    execute,
+    style::Print,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use tui::{
+    backend::{Backend, CrosstermBackend},
+    Terminal,
+};
+
+#[derive(Clone)]
+struct State {
+    selected: usize,
+    adding: String,
+    //mode: Mode,
+    status: Status,
+    pass_input: String,
+}
+
+#[derive(Clone)]
+enum Status {
+    Dirty,
+    Clean,
+}
+enum Movement {
+    Top,
+    Bottom,
+    Up,
+    Down,
+}
 
 #[derive(Clone)]
 struct Pagina {
@@ -127,7 +173,7 @@ fn print_lista(lista: &mut LinkedList<Pagina>) -> &str {
             s.push_str(&pagina.nome_pagina[..]);
             s.push_str(" | id: ");
             s.push_str(&pagina.id[..]);
-            s.push_str("] -> ");
+            s.push_str("]");
         }
     }
     Box::leak(s.into_boxed_str())
@@ -137,7 +183,7 @@ fn main() {
     let mut paginas_livres: LinkedList<Pagina> = LinkedList::new();
     let pa = &mut paginas_alocadas;
     let pl = &mut paginas_livres;
-    // //alocando
+    //alocando
     // alocar_novo_pagina("ei".to_string(), pa, pl);
     // alocar_novo_pagina("fala".to_string(), pa, pl);
     // alocar_novo_pagina("nada não".to_string(), pa, pl);
@@ -180,102 +226,162 @@ fn main() {
         Result::Err(e) => panic!("{}", e),
     };
     let bem_vindo = " Bem vindo ao Simulador de FIFO-buffer!! ";
-    if let Some((width, height)) = term_size::dimensions() {
-        rustbox.print(
-            (width - bem_vindo.len()) / 2,
-            1,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Red,
-            bem_vindo,
-        );
-        rustbox.print(
-            1,
-            3,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            "Escolha uma das Opções abaixo:  ",
-        );
-        rustbox.print(
-            1,
-            4,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            " Pressione '1' para alocar uma nova página.",
-        );
-        rustbox.print(
-            1,
-            5,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            " Pressione '2' para liberar uma página das páginas alocadas. ",
-        );
-        rustbox.print(
-            1,
-            6,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            " Pressione '3' para alocar uma página das páginas livre. ",
-        );
-        rustbox.print(
-            1,
-            7,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            " Pressione '4' para alocar uma página exata das páginas livres. ",
-        );
-        rustbox.print(
-            1,
-            8,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            " Pressione 'q' para sair. ",
-        );
-        rustbox.print(
-            1,
-            10,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            "Páginas Alocadas: ",
-        );
-        rustbox.print(
-            1,
-            11,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            print_lista(pa),
-        );
-        rustbox.print(
-            1,
-            13,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            "Páginas Livres:  ",
-        );
-        rustbox.print(
-            1,
-            14,
-            rustbox::RB_BOLD,
-            Color::White,
-            Color::Default,
-            print_lista(pl),
-        );
-    }
-    rustbox.present();
     loop {
+        rustbox.clear();
+        if let Some((width, height)) = term_size::dimensions() {
+            rustbox.print(
+                (width - bem_vindo.len()) / 2,
+                1,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Red,
+                bem_vindo,
+            );
+            rustbox.print(
+                1,
+                3,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                "Escolha uma das Opções abaixo:  ",
+            );
+            rustbox.print(
+                1,
+                4,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                " Pressione '1' para alocar uma nova página.",
+            );
+            rustbox.print(
+                1,
+                5,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                " Pressione '2' para liberar uma página das páginas alocadas. ",
+            );
+            rustbox.print(
+                1,
+                6,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                " Pressione '3' para alocar uma página das páginas livre. ",
+            );
+            rustbox.print(
+                1,
+                7,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                " Pressione '4' para alocar uma página exata das páginas livres. ",
+            );
+            rustbox.print(
+                1,
+                8,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                " Pressione 'Ctrl+c' para sair. ",
+            );
+            rustbox.print(
+                1,
+                10,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                "Páginas Alocadas: ",
+            );
+            rustbox.print(
+                1,
+                11,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                print_lista(pa),
+            );
+            rustbox.print(
+                1,
+                13,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                "Páginas Livres:  ",
+            );
+            rustbox.print(
+                1,
+                14,
+                rustbox::RB_BOLD,
+                Color::White,
+                Color::Default,
+                print_lista(pl),
+            );
+        }
+        rustbox.present();
         match rustbox.poll_event(false) {
             Ok(rustbox::Event::KeyEvent(key)) => match key {
-                Key::Char('q') => {
+                Key::Ctrl('c') => {
                     break;
+                }
+                Key::Char('1') => {
+                    //rustbox.set_input_mode(rustbox::InputMode::Alt);
+                    let mut input = String::new();
+                    rustbox.clear();
+                    loop {
+                        let width = rustbox.width();
+                        rustbox.print(
+                            (width - bem_vindo.len()) / 2,
+                            1,
+                            rustbox::RB_BOLD,
+                            Color::White,
+                            Color::Red,
+                            bem_vindo,
+                        );
+                        rustbox.print(
+                            1,
+                            3,
+                            rustbox::RB_BOLD,
+                            Color::White,
+                            Color::Default,
+                            "Digite o nome: ",
+                        );
+                        rustbox.present();
+                        match rustbox.poll_event(false) {
+                            Ok(rustbox::Event::KeyEvent(key)) => match key {
+                                Key::Ctrl('c') => {
+                                    break;
+                                }
+                                Key::Enter => {
+                                    let s = input.clone();
+                                    alocar_novo_pagina(s, pa, pl);
+                                    break;
+                                }
+                                Key::Backspace => {
+                                    input.pop();
+                                }
+                                Key::Char(c) => {
+                                    input.push(c);
+                                }
+                                _ => {
+                                    input.clone();
+                                }
+                            },
+                            Err(e) => panic!("{}", e),
+                            _ => {}
+                        }
+                        rustbox.clear();
+                        let input_str: &str = Box::leak(input.clone().into_boxed_str());
+                        rustbox.print(
+                            1,
+                            4,
+                            rustbox::RB_BOLD,
+                            Color::White,
+                            Color::Default,
+                            input_str,
+                        );
+                        rustbox.present();
+                    }
                 }
                 _ => {}
             },
