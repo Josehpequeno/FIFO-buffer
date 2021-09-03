@@ -7,8 +7,8 @@
 ```bash
 rustup install nightly
 cargo +nightly install racer
-cargo +nightly test
-cargo +nightly run
+rustup default nightly
+cargo run
 ```
 
 ### Preview
