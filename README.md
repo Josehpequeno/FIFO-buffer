@@ -12,4 +12,4 @@ cargo run
 ```
 
 ### Preview
-<img src="img/preview.png">
+![preview](img/preview.gif)
