@@ -9,18 +9,10 @@ use std::default::Default;
 
 use rustbox::{Color, Key, RustBox};
 
-// enum Movement {
-//     Top,
-//     Bottom,
-//     Up,
-//     Down,
-// }
-
 #[derive(Clone)]
 struct Pagina {
     nome_pagina: String,
     id: String,
-    //indice: i32,
     //proximo: Option<Box<Pagina>>,//  Box -> senão o Pagina vai ao infinito.
 }
 
@@ -37,7 +29,6 @@ fn build_pagina(nome: String, l1: &mut LinkedList<Pagina>, l2: &mut LinkedList<P
     let b = Pagina {
         nome_pagina: nome,
         id: id,
-        //indice: 0,
         //proximo: None,
     };
     b
