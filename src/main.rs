@@ -4,7 +4,7 @@ extern crate term_size;
 
 use nanoid::nanoid;
 
-use std::collections::LinkedList;
+use std::collections::LinkedList;//lista encadeada já existente em rust.
 use std::default::Default;
 
 use rustbox::{Color, Key, RustBox};
@@ -15,7 +15,7 @@ struct Pagina {
     id: String,
     //proximo: Option<Box<Pagina>>,//  Box -> senão o Pagina vai ao infinito.
 }
-
+//função com objetivo similar ao constructor para página.
 fn build_pagina(nome: String, l1: &mut LinkedList<Pagina>, l2: &mut LinkedList<Pagina>) -> Pagina {
     let mut i = 4;
     let alphabet: [char; 10] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
@@ -33,7 +33,7 @@ fn build_pagina(nome: String, l1: &mut LinkedList<Pagina>, l2: &mut LinkedList<P
     };
     b
 }
-
+//verifica se já existe o id buscado.
 fn busca_id(id: &String, l1: &mut LinkedList<Pagina>, l2: &mut LinkedList<Pagina>) -> bool {
     let mut flag = false;
     for pagina in l1.iter() {
@@ -48,7 +48,7 @@ fn busca_id(id: &String, l1: &mut LinkedList<Pagina>, l2: &mut LinkedList<Pagina
     }
     flag
 }
-
+//insere uma nova página a lista de páginas alocadas.
 fn alocar_nova_pagina<'a>(
     nome: String,
     lista: &'a mut LinkedList<Pagina>,
@@ -61,7 +61,7 @@ fn alocar_nova_pagina<'a>(
     lista.push_back(b);
     (false, "✓ Nova página alocada!")
 }
-
+//libera uma página do ínicio de uma lista encadeada colocando ela no final de outra lista encadeada.
 fn liberar_pagina<'a>(
     lista_liberando: &mut LinkedList<Pagina>,
     lista_recebendo: &'a mut LinkedList<Pagina>,
@@ -80,15 +80,16 @@ fn liberar_pagina<'a>(
             );
         }
     }
-    let b = lista_liberando.front_mut().cloned().unwrap();
-    lista_recebendo.push_back(b);
-    lista_liberando.pop_front();
+    let b = lista_liberando.front().cloned().unwrap();
+    lista_recebendo.push_back(b);//insere no final.
+    lista_liberando.pop_front();//remove do começo
     if alocar {
         (false, "✓ Página alocada!")
     } else {
         (false, "✓ Página liberada!")
     }
 }
+//Insere uma página com id especificado na lista de páginas alocadas.
 fn alocar_pagina_exata<'a>(
     pagina_id: String,
     lista_liberando: &'a mut LinkedList<Pagina>,
@@ -103,10 +104,12 @@ fn alocar_pagina_exata<'a>(
     let mut flag = false;
     let ll = lista_liberando;
     let mut int = 0;
-    for (i, pagina) in ll.iter().enumerate() {
+    for (i, pagina) in ll.iter().enumerate() {//aqui faz uma referência imutável a ll.
         if pagina.id == pagina_id {
             let b = pagina.to_owned();
             lista_recebendo.push_back(b);
+            //ll.remove(i); // faria uma referência mútavel e imutável no mesmo ciclo de vida, o que 
+            // não pode em rust.
             int = i;
             flag = true;
         }
@@ -114,7 +117,7 @@ fn alocar_pagina_exata<'a>(
     if !flag {
         (!flag, "✗ Página inexistente!")
     } else {
-        ll.remove(int);
+        ll.remove(int);//remoção da lista efetuada antes do retorno da função.
         let mut string = String::new();
         let p_id: &str = Box::leak(pagina_id.into_boxed_str());
         string.push_str("✓ Página ");
@@ -124,7 +127,7 @@ fn alocar_pagina_exata<'a>(
         (!flag, string_slice)
     }
 }
-
+//função para imprimir listas endeadas no contexto desse programa.
 fn print_lista(lista: &mut LinkedList<Pagina>) -> &str {
     let mut s = String::new();
     s.push_str(" Inicio 🡆 ");
@@ -150,7 +153,7 @@ fn print_lista(lista: &mut LinkedList<Pagina>) -> &str {
     }
     Box::leak(s.into_boxed_str())
 }
-
+//função para detectar a mudança no menu e retornar um novo estado do rustbox.
 fn menu_change(rustbox: &RustBox, option: i32) {
     match option {
         0 => {
@@ -372,6 +375,7 @@ fn menu_change(rustbox: &RustBox, option: i32) {
     }
 }
 fn main() {
+    //criando as listas de páginas alocadas e páginas livres.
     let mut paginas_alocadas: LinkedList<Pagina> = LinkedList::new();
     let mut paginas_livres: LinkedList<Pagina> = LinkedList::new();
     let pa = &mut paginas_alocadas;
